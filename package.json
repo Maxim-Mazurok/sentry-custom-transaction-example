@@ -1,0 +1,24 @@
+{
+  "name": "sentry-custom-transaction-example",
+  "version": "1.0.0",
+  "description": "https://docs.sentry.io/platforms/javascript/performance/instrumentation/custom-instrumentation/",
+  "scripts": {
+    "start": "webpack serve",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": {
+    "name": "Maxim Mazurok",
+    "email": "maxim@mazurok.com",
+    "url": "https://maxim.mazurok.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@sentry/browser": "^6.16.1",
+    "@sentry/tracing": "^6.16.1",
+    "dotenv-webpack": "^7.0.3",
+    "html-webpack-plugin": "^5.5.0",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.7.1",
+    "webpack": "^5.65.0"
+  }
+}
