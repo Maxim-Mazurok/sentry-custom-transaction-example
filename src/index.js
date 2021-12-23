@@ -11,16 +11,50 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-async function validateShoppingCartOnServer() {
+Sentry.setTag("country", Math.random() > 0.5 ? "au" : "uk");
+
+function validateShoppingCart(parentSpan) {
+  const span = parentSpan.startChild({
+    op: "task",
+    description: `validating shopping cart`,
+  });
   return new Promise((resolve) =>
-    setTimeout(
-      () => resolve(`validated: ${Math.random()}`),
-      Math.random() * 1000
-    )
+    setTimeout(() => {
+      span.setStatus("ok");
+      span.finish();
+      resolve(`validating at ${new Date()}`);
+    }, Math.random() * 1000)
+  );
+}
+
+function processShoppingCart(parentSpan) {
+  const span = parentSpan.startChild({
+    op: "task",
+    description: `process shopping cart`,
+  });
+  return new Promise((resolve) =>
+    setTimeout(() => {
+      span.setStatus("ok");
+      span.finish();
+      resolve(`processing at ${new Date()}`);
+    }, Math.random() * 1000)
   );
 }
 
 async function processAndValidateShoppingCart() {
+  const transaction = Sentry.getCurrentHub().getScope().getTransaction();
+  const span = transaction.startChild({
+    op: "task",
+    description: `process and validate shopping cart`,
+  });
+  const resultValidate = await validateShoppingCart(span);
+  const resultProcess = await processShoppingCart(span);
+  span.setStatus("ok");
+  span.finish();
+  return [resultValidate, resultProcess];
+}
+
+async function finalize() {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       if (Math.random() < 0.5) {
@@ -42,31 +76,23 @@ async function shopCheckout(button) {
 
   button.setAttribute("disabled", "");
 
-  const span1 = transaction.startChild({
-    op: "task",
-    description: `validating shopping cart on server`,
-  });
-  const result = await validateShoppingCartOnServer();
-  span1.setStatus("ok");
-  span1.finish();
+  const results = await processAndValidateShoppingCart();
 
-  const span2 = transaction.startChild({
-    data: {
-      result,
-    },
+  const spanFinalize = transaction.startChild({
+    data: { results },
     op: "task",
-    description: `processing shopping cart result`,
+    description: `finalizing at ${new Date()}`,
   });
   try {
-    await processAndValidateShoppingCart(result);
-    span2.setStatus("ok");
+    await finalize();
+    spanFinalize.setStatus("ok");
     transaction.setStatus("ok");
   } catch (err) {
-    span2.setStatus("not_found");
+    spanFinalize.setStatus("not_found");
     transaction.setStatus("not_found");
     throw err;
   } finally {
-    span2.finish();
+    spanFinalize.finish();
     transaction.finish();
     button.removeAttribute("disabled");
   }
